@@ -349,7 +349,7 @@ resource synapseNotebook 'Microsoft.Synapse/workspaces/notebooks@2021-06-01' = {
       {
         cell_type: 'code'
         source: [
-          '# This notebook runs the Spark job by importing the script from the storage account\nimport os\nimport sys\n\n# Set environment variables for the Spark job\nos.environ["YELLOW_SOURCE"] = "abfss://${silverContainerName}@${storageAccountName}.dfs.${environment().suffixes.storage}/${yellowTaxiDestinationPath}"\nos.environ["GREEN_SOURCE"] = "abfss://${silverContainerName}@${storageAccountName}.dfs.${environment().suffixes.storage}/${greenTaxiDestinationPath}"\nos.environ["TARGET_DB"] = "${targetDatabaseName}"\nos.environ["TARGET_TABLE"] = "${targetTableName}"\n\n# Download the script from the storage account\nfrom notebookutils import mssparkutils\nmssparkutils.fs.cp("abfss://sparkscripts@${storageAccountName}.dfs.${environment().suffixes.storage}/agg_trip_distance.py", "file:/tmp/agg_trip_distance.py")\n\n# Add the script directory to the Python path\nsys.path.append("/tmp")\n\n# Import and run the script\nimport agg_trip_distance\n\n# Alternatively, execute the script directly\n# %run /tmp/agg_trip_distance.py\n'
+          '# This notebook runs the Spark job by importing the script from the storage account\nimport os\nimport sys\n\n# Set environment variables for the Spark job\nos.environ["YELLOW_SOURCE"] = "abfss://${silverContainerName}@${storageAccount.name}.dfs.${environment().suffixes.storage}/${yellowTaxiDestinationPath}"\nos.environ["GREEN_SOURCE"] = "abfss://${silverContainerName}@${storageAccount.name}.dfs.${environment().suffixes.storage}/${greenTaxiDestinationPath}"\nos.environ["TARGET_DB"] = "${targetDatabaseName}"\nos.environ["TARGET_TABLE"] = "${targetTableName}"\n\n# Download the script from the storage account\nfrom notebookutils import mssparkutils\nmssparkutils.fs.cp("abfss://sparkscripts@${storageAccount.name}.dfs.${environment().suffixes.storage}/agg_trip_distance.py", "file:/tmp/agg_trip_distance.py")\n\n# Add the script directory to the Python path\nsys.path.append("/tmp")\n\n# Import and run the script\nimport agg_trip_distance\n\n# Alternatively, execute the script directly\n# %run /tmp/agg_trip_distance.py\n'
         ]
         metadata: {}
         execution_count: null
@@ -384,7 +384,7 @@ resource synapsePipeline 'Microsoft.Synapse/workspaces/pipelines@2021-06-01' = {
 
 // Logic App for scheduling (equivalent to EventBridge schedule)
 resource logicApp 'Microsoft.Logic/workflows@2019-05-01' = if (enableDailyScheduling) {
-  name: logicAppName
+  name: '${resourceNamePrefix}-logic-${uniqueSuffix}'
   location: location
   properties: {
     state: 'Enabled'
