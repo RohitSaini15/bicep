@@ -34,7 +34,7 @@ param targetDatabaseName string = 'spark_data_lake'
 param targetTableName string = 'aggregated_trip_distance'
 
 // Variables
-var uniqueSuffix = uniqueString(resourceGroup().id)
+var uniqueSuffix = uniqueString(resourceGroup().id, subscription().subscriptionId, utcNow())
 var storageAccountName = '${resourceNamePrefix}storage${uniqueSuffix}'
 var bronzeContainerName = 'bronze'
 var silverContainerName = 'silver'
@@ -42,7 +42,7 @@ var goldContainerName = 'gold'
 var synapseWorkspaceName = '${resourceNamePrefix}-synapse-${uniqueSuffix}'
 var sparkPoolName = 'sparkpool'
 var dataFactoryName = '${resourceNamePrefix}-adf-${uniqueSuffix}'
-var keyVaultName = '${resourceNamePrefix}-kv-${uniqueSuffix}'
+var keyVaultName = '${resourceNamePrefix}-kv-${take(uniqueString(resourceGroup().id, subscription().subscriptionId, utcNow('u')), 16)}'
 var logicAppName = '${resourceNamePrefix}-logic-${uniqueSuffix}'
 var managedIdentityName = '${resourceNamePrefix}-identity-${uniqueSuffix}'
 var yellowTaxiDestinationPath = 'yellow-trip-data/'
@@ -173,10 +173,6 @@ resource sparkPool 'Microsoft.Synapse/workspaces/bigDataPools@2021-06-01' = {
       delayInMinutes: 15
     }
     sparkVersion: '3.2'
-    libraryRequirements: {
-      content: 'great_expectations==0.15.50'
-      filename: 'requirements.txt'
-    }
   }
 }
 
@@ -205,9 +201,9 @@ resource storageLinkedService 'Microsoft.DataFactory/factories/linkedservices@20
 
 // Linked Service for Synapse
 resource synapseLinkedService 'Microsoft.DataFactory/factories/linkedservices@2018-06-01' = {
-  name: '${dataFactory.name}/SynapseLinkedService'
+  name: '${dataFactory.name}/SynapseLS'
   properties: {
-    type: 'AzureSynapseAnalytics'
+    type: 'AzureSqlDW'
     typeProperties: {
       connectionString: 'Server=tcp:${synapseWorkspace.name}.sql.azuresynapse.net,1433;Initial Catalog=master;User ID=sqladmin;Password=P@ssw0rd1234!@#$;'
     }
@@ -219,7 +215,7 @@ resource yellowTaxiDataset 'Microsoft.DataFactory/factories/datasets@2018-06-01'
   name: '${dataFactory.name}/YellowTaxiDataset'
   properties: {
     linkedServiceName: {
-      referenceName: storageLinkedService.name
+      referenceName: 'AzureStorageLS'
       type: 'LinkedServiceReference'
     }
     type: 'Parquet'
@@ -238,7 +234,7 @@ resource greenTaxiDataset 'Microsoft.DataFactory/factories/datasets@2018-06-01' 
   name: '${dataFactory.name}/GreenTaxiDataset'
   properties: {
     linkedServiceName: {
-      referenceName: storageLinkedService.name
+      referenceName: 'AzureStorageLS'
       type: 'LinkedServiceReference'
     }
     type: 'Parquet'
