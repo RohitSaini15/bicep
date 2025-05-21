@@ -1,0 +1,189 @@
+trigger:
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - infra/azure/*
+    - spark/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - name: resourceGroupName
+    value: 'taxi-data-processing-rg'
+  - name: location
+    value: 'eastus'
+  - name: environmentName
+    value: 'dev'
+
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: BuildAndTest
+    displayName: 'Build and Test'
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.9'
+        addToPath: true
+        
+    - script: |
+        cd spark
+        pip install -r requirements.txt
+        pytest
+      displayName: 'Run Spark Unit Tests'
+      
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'Azure Subscription'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          cd infra/azure
+          az bicep build --file main.bicep
+      displayName: 'Validate Bicep Template'
+      
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)'
+        Contents: |
+          infra/azure/**
+          spark/**
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
+      displayName: 'Copy Files to Artifact Staging Directory'
+      
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+      displayName: 'Publish Artifacts'
+
+- stage: DeployDev
+  displayName: 'Deploy to Dev'
+  dependsOn: Build
+  jobs:
+  - deployment: DeployToDev
+    displayName: 'Deploy to Dev Environment'
+    environment: 'dev'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@1
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'drop'
+              downloadPath: '$(System.ArtifactsDirectory)'
+            displayName: 'Download Artifacts'
+            
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'Azure Subscription'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                cd $(System.ArtifactsDirectory)/drop/infra/azure
+                
+                # Create resource group if it doesn't exist
+                if ! az group show --name $(resourceGroupName) &> /dev/null; then
+                  az group create --name $(resourceGroupName) --location $(location)
+                fi
+                
+                # Deploy Bicep template
+                az deployment group create \
+                  --resource-group $(resourceGroupName) \
+                  --template-file main.bicep \
+                  --parameters parameters.json \
+                  --parameters environmentName=$(environmentName)
+            displayName: 'Deploy Infrastructure'
+            
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'Azure Subscription'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Get the Synapse workspace name from the deployment output
+                SYNAPSE_WORKSPACE=$(az deployment group show \
+                  --resource-group $(resourceGroupName) \
+                  --name main \
+                  --query properties.outputs.synapseWorkspaceName.value \
+                  --output tsv)
+                
+                # Trigger the Synapse pipeline to run the integration test
+                PIPELINE_RUN_ID=$(az synapse pipeline create-run \
+                  --workspace-name $SYNAPSE_WORKSPACE \
+                  --name TaxiAggregationPipeline \
+                  --output tsv)
+                
+                echo "Pipeline run ID: $PIPELINE_RUN_ID"
+                
+                # Wait for the pipeline to complete
+                STATUS="InProgress"
+                while [ "$STATUS" == "InProgress" ] || [ "$STATUS" == "Queued" ]; do
+                  echo "Waiting for pipeline run to complete..."
+                  sleep 30
+                  STATUS=$(az synapse pipeline-run show \
+                    --workspace-name $SYNAPSE_WORKSPACE \
+                    --run-id $PIPELINE_RUN_ID \
+                    --query status \
+                    --output tsv)
+                  echo "Current status: $STATUS"
+                done
+                
+                if [ "$STATUS" != "Succeeded" ]; then
+                  echo "Pipeline run failed with status: $STATUS"
+                  exit 1
+                fi
+                
+                echo "Pipeline run completed successfully"
+            displayName: 'Run Integration Test'
+            continueOnError: true
+
+- stage: DeployProd
+  displayName: 'Deploy to Prod'
+  dependsOn: DeployDev
+  condition: succeeded('DeployDev')
+  jobs:
+  - deployment: DeployToProd
+    displayName: 'Deploy to Production Environment'
+    environment: 'prod'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@1
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'drop'
+              downloadPath: '$(System.ArtifactsDirectory)'
+            displayName: 'Download Artifacts'
+            
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'Azure Subscription'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                cd $(System.ArtifactsDirectory)/drop/infra/azure
+                
+                # Create resource group if it doesn't exist
+                PROD_RESOURCE_GROUP="taxi-data-processing-prod-rg"
+                if ! az group show --name $PROD_RESOURCE_GROUP &> /dev/null; then
+                  az group create --name $PROD_RESOURCE_GROUP --location $(location)
+                fi
+                
+                # Deploy Bicep template with production parameters
+                az deployment group create \
+                  --resource-group $PROD_RESOURCE_GROUP \
+                  --template-file main.bicep \
+                  --parameters parameters.json \
+                  --parameters environmentName=prod \
+                  --parameters enableDailyScheduling=true
+            displayName: 'Deploy Infrastructure to Production'
