@@ -1,0 +1,6 @@
+import pandas as pd
+
+# df = pd.read_csv('./spark/data/2020_Green_Taxi_Trip_Data.csv')
+# df.to_parquet('./spark/data/2020_Green_Taxi_Trip_Data.parquet')
+df = pd.read_csv('./spark/data/2020_Yellow_Taxi_Trip_Data.csv')
+df.to_parquet('./spark/data/2020_Yellow_Taxi_Trip_Data.parquet')

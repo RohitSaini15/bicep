@@ -1,0 +1,16 @@
+{
+  "staging": {
+    "account": "933822101509",
+    "region": "eu-north-1"
+  },
+  "prod": {
+    "account": "933822101509",
+    "region": "eu-north-1"
+  },
+  "@data-solutions-framework-on-aws/removeDataOnDestroy": true,
+  "availability-zones:account=933822101509:region=eu-north-1": [
+    "eu-north-1a",
+    "eu-north-1b",
+    "eu-north-1c"
+  ]
+}
