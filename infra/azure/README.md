@@ -84,6 +84,8 @@ The Bicep template accepts the following parameters:
 
 7. **CI/CD**: The AWS CodePipeline CI/CD pipeline would need to be implemented separately using Azure DevOps or GitHub Actions.
 
+8. **Spark Code Reuse**: The original Spark code is reused by storing it in a dedicated storage container and referencing it from the Synapse notebook, rather than embedding it directly in the infrastructure code.
+
 ## Limitations and Considerations
 
 1. **HTTP Source Dataset**: The template references an 'HttpSourceDataset' that would need to be defined separately to match the source data location.

@@ -332,7 +332,12 @@ resource greenTaxiPipeline 'Microsoft.DataFactory/factories/pipelines@2018-06-01
   }
 }
 
-// Synapse Notebook for Spark processing
+// Container for Spark scripts
+resource sparkScriptsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-08-01' = {
+  name: '${storageAccount.name}/default/sparkscripts'
+}
+
+// Synapse Notebook for Spark processing that references external script
 resource synapseNotebook 'Microsoft.Synapse/workspaces/notebooks@2021-06-01' = {
   name: '${synapseWorkspace.name}/TaxiAggregationNotebook'
   properties: {
@@ -348,47 +353,28 @@ resource synapseNotebook 'Microsoft.Synapse/workspaces/notebooks@2021-06-01' = {
       {
         cell_type: 'code'
         source: [
-          'from pyspark.sql import *\n',
-          'from pyspark.sql.functions import lit, col\n',
-          'from pyspark.sql.types import StringType\n',
+          '# This notebook runs the Spark job by importing the script from the storage account\n',
           'import os\n',
-          'import great_expectations as gx\n',
+          'import sys\n',
           '\n',
-          'def aggregate_trip_distance(df):\n',
-          '    return df.groupBy("trip_distance").count()\n',
+          '# Set environment variables for the Spark job\n',
+          'os.environ["YELLOW_SOURCE"] = "abfss://${silverContainerName}@${storageAccountName}.dfs.${environment().suffixes.storage}/${yellowTaxiDestinationPath}"\n',
+          'os.environ["GREEN_SOURCE"] = "abfss://${silverContainerName}@${storageAccountName}.dfs.${environment().suffixes.storage}/${greenTaxiDestinationPath}"\n',
+          'os.environ["TARGET_DB"] = "${targetDatabaseName}"\n',
+          'os.environ["TARGET_TABLE"] = "${targetTableName}"\n',
           '\n',
-          'def combine_taxi_types(green_df, yellow_df):\n',
-          '    return green_df.withColumn("taxi_type", lit("green")).union(\n',
-          '        yellow_df.withColumn("taxi_type", lit("yellow"))\n',
-          '    )\n',
+          '# Download the script from the storage account\n',
+          'from notebookutils import mssparkutils\n',
+          'mssparkutils.fs.cp("abfss://sparkscripts@${storageAccountName}.dfs.${environment().suffixes.storage}/agg_trip_distance.py", "file:/tmp/agg_trip_distance.py")\n',
           '\n',
-          'def check_volume(df, nb): \n',
-          '    context = gx.get_context()\n',
-          '    data_source = context.data_sources.add_spark(name="combined_taxi")\n',
-          '    data_asset = data_source.add_dataframe_asset("combined_taxi_df")\n',
-          '    batch_definition = data_asset.add_batch_definition_whole_dataframe("data_quality_check")\n',
-          '    batch = batch_definition.get_batch(batch_parameters={"dataframe": df})\n',
-          '    expectation = gx.expectations.ExpectTableRowCountToEqual(value=6)\n',
-          '    return batch.validate(expectation)\n',
+          '# Add the script directory to the Python path\n',
+          'sys.path.append("/tmp")\n',
           '\n',
-          '# Get parameters from Synapse\n',
-          'yellow_source = "abfss://${silverContainerName}@${storageAccountName}.dfs.${environment().suffixes.storage}/${yellowTaxiDestinationPath}"\n',
-          'green_source = "abfss://${silverContainerName}@${storageAccountName}.dfs.${environment().suffixes.storage}/${greenTaxiDestinationPath}"\n',
-          'target_database = "${targetDatabaseName}"\n',
-          'target_table = "${targetTableName}"\n',
+          '# Import and run the script\n',
+          'import agg_trip_distance\n',
           '\n',
-          'spark = SparkSession.builder.getOrCreate()\n',
-          'green_df = spark.read.parquet(f"{green_source}/*")\n',
-          'yellow_df = spark.read.parquet(f"{yellow_source}/*")\n',
-          '\n',
-          'green_agg_df = aggregate_trip_distance(green_df)\n',
-          'yellow_agg_df = aggregate_trip_distance(yellow_df)\n',
-          '\n',
-          'combined_df = combine_taxi_types(green_agg_df, yellow_agg_df)\n',
-          'combined_df.write.mode("overwrite").saveAsTable(f"{target_database}.{target_table}")\n',
-          '\n',
-          'quality_results = check_volume(combined_df, 10)\n',
-          'print(quality_results)\n'
+          '# Alternatively, execute the script directly\n',
+          '# %run /tmp/agg_trip_distance.py\n'
         ]
         metadata: {}
         execution_count: null

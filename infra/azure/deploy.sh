@@ -22,4 +22,21 @@ az deployment group create \
   --template-file main.bicep \
   --parameters parameters.json
 
+# Get the storage account name from the deployment output
+echo "Getting storage account name..."
+STORAGE_ACCOUNT_NAME=$(az deployment group show \
+  --resource-group $RESOURCE_GROUP_NAME \
+  --name main \
+  --query properties.outputs.storageAccountName.value \
+  --output tsv)
+
+echo "Storage account name: $STORAGE_ACCOUNT_NAME"
+
+# Make the script executable
+chmod +x ./copySparkFiles.sh
+
+# Copy Spark files to the storage account
+echo "Copying Spark files to storage account..."
+./copySparkFiles.sh $RESOURCE_GROUP_NAME $STORAGE_ACCOUNT_NAME
+
 echo "Deployment completed."
