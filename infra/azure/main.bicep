@@ -6,7 +6,7 @@
 param environmentName string = 'dev'
 
 @description('Azure region for resource deployment')
-param location string = resourceGroup().location
+param location string = 'westus2'
 
 @description('Name prefix for all resources')
 param resourceNamePrefix string = 'taxi'
@@ -151,7 +151,7 @@ resource synapseWorkspace 'Microsoft.Synapse/workspaces@2021-06-01' = {
       filesystem: goldContainerName
     }
     sqlAdministratorLogin: 'sqladmin'
-    sqlAdministratorLoginPassword: 'P@ssw0rd1234!' // In production, use Key Vault reference or parameter
+    sqlAdministratorLoginPassword: 'P@ssw0rd1234!@#$' // In production, use Key Vault reference or parameter
   }
 }
 
@@ -194,7 +194,7 @@ resource dataFactory 'Microsoft.DataFactory/factories@2018-06-01' = {
 
 // Linked Service for Azure Storage
 resource storageLinkedService 'Microsoft.DataFactory/factories/linkedservices@2018-06-01' = {
-  name: '${dataFactory.name}/AzureStorageLinkedService'
+  name: '${dataFactory.name}/AzureStorageLS'
   properties: {
     type: 'AzureBlobStorage'
     typeProperties: {
@@ -209,7 +209,7 @@ resource synapseLinkedService 'Microsoft.DataFactory/factories/linkedservices@20
   properties: {
     type: 'AzureSynapseAnalytics'
     typeProperties: {
-      connectionString: 'Server=tcp:${synapseWorkspace.name}.sql.azuresynapse.net,1433;Initial Catalog=master;User ID=sqladmin;Password=P@ssw0rd1234!;'
+      connectionString: 'Server=tcp:${synapseWorkspace.name}.sql.azuresynapse.net,1433;Initial Catalog=master;User ID=sqladmin;Password=P@ssw0rd1234!@#$;'
     }
   }
 }
