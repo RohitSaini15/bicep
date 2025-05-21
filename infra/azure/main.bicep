@@ -371,10 +371,7 @@ resource synapseNotebook 'Microsoft.Synapse/workspaces/notebooks@2021-06-01' = {
           'sys.path.append("/tmp")\n',
           '\n',
           '# Import and run the script\n',
-          'import agg_trip_distance\n',
-          '\n',
-          '# Alternatively, execute the script directly\n',
-          '# %run /tmp/agg_trip_distance.py\n'
+          'import agg_trip_distance\n# Alternatively, execute the script directly\n# %run /tmp/agg_trip_distance.py\n'
         ]
         metadata: {}
         execution_count: null
