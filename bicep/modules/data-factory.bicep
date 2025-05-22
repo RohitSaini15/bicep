@@ -22,7 +22,7 @@ resource integrationRuntime 'Microsoft.DataFactory/factories/integrationRuntimes
     type: 'Managed'
     typeProperties: {
       computeProperties: {
-        location: 'AutoResolve'
+        location: location
       }
     }
   }
