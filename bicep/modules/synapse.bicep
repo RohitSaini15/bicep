@@ -32,7 +32,7 @@ resource synapseWorkspace 'Microsoft.Synapse/workspaces@2021-06-01' = {
       filesystem: defaultDataLakeStorageFilesystemName
     }
     sqlAdministratorLogin: 'sqladminuser'
-    sqlAdministratorLoginPassword: 'H@Sh1CoR3!' // In production, use Key Vault
+    sqlAdministratorLoginPassword: 'P@ssw0rd1234!#$%' // In production, use Key Vault
   }
 }
 
@@ -216,7 +216,7 @@ resource sparkNotebook 'Microsoft.Synapse/workspaces/notebooks@2021-06-01' = {
         id: sparkPool.name
         name: sparkPool.name
         type: 'Spark'
-        endpoint: 'https://${synapseWorkspaceName}.dev.azuresynapse.net'
+        endpoint: 'https://${synapseWorkspaceName}.azuresynapse.net'
         auth: {
           type: 'AAD'
         }
