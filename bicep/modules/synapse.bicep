@@ -136,7 +136,7 @@ resource sparkJobTrigger 'Microsoft.Synapse/workspaces/triggers@2021-06-01' = {
         pipelineReference: {
           referenceName: sparkJobPipeline.name
           type: 'PipelineReference'
-        },
+        }
         parameters: {}
       }
     ]
