@@ -226,14 +226,14 @@ resource sparkNotebook 'Microsoft.Synapse/workspaces/notebooks@2021-06-01' = {
       {
         cell_type: 'code'
         source: [
-          '# Run the Taxi Trip Distance Aggregation Spark job\n',
-          'import os\n',
-          'import sys\n\n',
-          '# Add the scripts directory to the Python path\n',
-          'scripts_path = "abfss://${defaultDataLakeStorageFilesystemName}@${storageAccountName}.dfs.core.windows.net/scripts"\n',
-          'spark.sparkContext.addPyFile(os.path.join(scripts_path, "agg_trip_distance.py"))\n\n',
-          '# Import and run the main function from the script\n',
-          'from agg_trip_distance import main\n',
+          '# Run the Taxi Trip Distance Aggregation Spark job\n'
+          'import os\n'
+          'import sys\n\n'
+          '# Add the scripts directory to the Python path\n'
+          'scripts_path = "abfss://${defaultDataLakeStorageFilesystemName}@${storageAccountName}.dfs.core.windows.net/scripts"\n'
+          'spark.sparkContext.addPyFile(os.path.join(scripts_path, "agg_trip_distance.py"))\n\n'
+          '# Import and run the main function from the script\n'
+          'from agg_trip_distance import main\n'
           'main()\n'
         ]
         metadata: {}
