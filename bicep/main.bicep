@@ -5,7 +5,7 @@ targetScope = 'resourceGroup'
 param environmentName string = 'dev'
 
 @description('The Azure region for deploying resources')
-param location string = 'eastus'
+param location string = 'centralus'
 
 @description('Project name to be used in resource names')
 param projectName string = 'taxidatalake'
@@ -17,12 +17,12 @@ param tags object = {
 }
 
 // Variables
-var resourceGroupName = 'rg-${projectName}-${environmentName}'
-var storageAccountName = 'st${projectName}${environmentName}'
-var synapseWorkspaceName = 'syn-${projectName}-${environmentName}'
-var dataFactoryName = 'adf-${projectName}-${environmentName}'
-var keyVaultName = 'kv-${projectName}-${environmentName}'
-var logAnalyticsName = 'log-${projectName}-${environmentName}'
+var resourceGroupName = 'rgcus-${projectName}-${environmentName}'
+var storageAccountName = 'stcus${projectName}${environmentName}'
+var synapseWorkspaceName = 'synscus-${projectName}-${environmentName}'
+var dataFactoryName = 'adfcus-${projectName}-${environmentName}'
+var keyVaultName = 'kvcus-${projectName}-${environmentName}'
+var logAnalyticsName = 'logcus-${projectName}-${environmentName}'
 
 // Module deployments
 module storage 'modules/storage.bicep' = {
