@@ -17,12 +17,12 @@ resource dataFactory 'Microsoft.DataFactory/factories@2018-06-01' = {
 // Integration Runtime
 resource integrationRuntime 'Microsoft.DataFactory/factories/integrationRuntimes@2018-06-01' = {
   parent: dataFactory
-  name: 'AutoResolveIntegrationRuntime'
+  name: 'DefaultIntegrationRuntime'
   properties: {
     type: 'Managed'
     typeProperties: {
       computeProperties: {
-        location: 'AutoResolve'
+        location: location // Use the same location as the data factory
       }
     }
   }
@@ -74,7 +74,7 @@ resource datalakeLinkedService 'Microsoft.DataFactory/factories/linkedservices@2
       url: 'https://${storageAccountName}.dfs.core.windows.net'
     }
     connectVia: {
-      referenceName: 'AutoResolveIntegrationRuntime'
+      referenceName: 'DefaultIntegrationRuntime'
       type: 'IntegrationRuntimeReference'
     }
     credentials: {
@@ -159,7 +159,7 @@ resource synapseLinkedService 'Microsoft.DataFactory/factories/linkedservices@20
       connectionString: 'Data Source=syn-taxidatalake-dev.sql.azuresynapse.net; Initial Catalog=nyctaxi'
     }
     connectVia: {
-      referenceName: 'AutoResolveIntegrationRuntime'
+      referenceName: 'DefaultIntegrationRuntime'
       type: 'IntegrationRuntimeReference'
     }
     credentials: {
